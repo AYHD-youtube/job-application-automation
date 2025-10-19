@@ -120,6 +120,10 @@ def init_user_db():
     conn.close()
 
 
+# Initialize database on startup (runs when Gunicorn loads the app)
+init_user_db()
+
+
 @login_manager.user_loader
 def load_user(user_id):
     """Load user by ID"""
