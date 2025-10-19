@@ -254,9 +254,17 @@ def dashboard():
     """, (current_user.id,))
     recent_runs = cursor.fetchall()
     
+    # Clean up stuck "running" status runs (older than 10 minutes)
+    cursor.execute("""
+        UPDATE job_runs 
+        SET status = 'failed', completed_at = CURRENT_TIMESTAMP
+        WHERE user_id = ? AND status = 'running' 
+        AND started_at < datetime('now', '-10 minutes')
+    """, (current_user.id,))
+    conn.commit()
     conn.close()
     
-    # Get application stats from user's database
+    # Get stats from user's job database
     user_db_path = os.path.join(DATABASE_DIR, f"user_{current_user.id}_jobs.db")
     if os.path.exists(user_db_path):
         with JobDatabase(user_db_path) as db:
