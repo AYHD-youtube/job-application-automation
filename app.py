@@ -652,18 +652,14 @@ def score_job_with_ai(job_data, resume_text, google_api_key):
 def find_company_domain_and_email(company_name, hunter_api_key):
     """Find company domain and HR email using Hunter.io"""
     try:
-        print(f"  Searching for emails for company: {company_name}")
-        
         # Use the existing email finder function
         result = find_company_domain_and_emails(company_name, hunter_api_key)
-        
-        print(f"  Hunter.io result: {result}")
         
         if result and result.get('emails'):
             # Return the domain and first email found
             domain = result.get('domain', '')
             email = result['emails'][0]  # Get first email from list
-            print(f"  Found domain: {domain}, email: {email}")
+            print(f"  Found email: {email} for {company_name}")
             return domain, email
         
         print(f"  No emails found for {company_name}")
