@@ -272,6 +272,18 @@ def settings():
     cursor = conn.cursor()
     
     if request.method == 'POST':
+        # Debug: Print form data
+        form_data = {
+            'google_api_key': request.form.get('google_api_key'),
+            'hunter_api_key': request.form.get('hunter_api_key'),
+            'sender_email': request.form.get('sender_email'),
+            'sender_name': request.form.get('sender_name'),
+            'linkedin_search_url': request.form.get('linkedin_search_url'),
+            'linkedin_cookie': request.form.get('linkedin_cookie', ''),
+            'excluded_companies': request.form.get('excluded_companies', ''),
+        }
+        print(f"DEBUG: User {current_user.id} form data: {form_data}")
+        
         # Ensure user_settings row exists (create if doesn't)
         cursor.execute("SELECT id FROM user_settings WHERE user_id = ?", (current_user.id,))
         if not cursor.fetchone():
@@ -308,6 +320,10 @@ def settings():
             current_user.id
         ))
         
+        # Debug: Check if update worked
+        rows_affected = cursor.rowcount
+        print(f"DEBUG: UPDATE affected {rows_affected} rows")
+        
         conn.commit()
         flash('Settings updated successfully!', 'success')
         
@@ -327,6 +343,9 @@ def settings():
         user_settings = cursor.fetchone()
     
     conn.close()
+    
+    # Debug: Print settings to logs
+    print(f"DEBUG: User {current_user.id} settings: {dict(user_settings) if user_settings else 'None'}")
     
     return render_template('settings.html', settings=user_settings)
 
