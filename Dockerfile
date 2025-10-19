@@ -25,7 +25,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Create necessary directories
-RUN mkdir -p uploads user_credentials instance
+RUN mkdir -p uploads user_credentials databases instance
 
 # Expose port 8001
 EXPOSE 8001

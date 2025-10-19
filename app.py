@@ -32,6 +32,10 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['CREDENTIALS_FOLDER'] = 'user_credentials'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
+# Database directory
+DATABASE_DIR = 'databases'
+os.makedirs(DATABASE_DIR, exist_ok=True)
+
 # Ensure folders exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['CREDENTIALS_FOLDER'], exist_ok=True)
@@ -56,7 +60,8 @@ class User(UserMixin):
 
 def get_user_db():
     """Get user database connection"""
-    conn = sqlite3.connect('users.db')
+    db_path = os.path.join(DATABASE_DIR, 'users.db')
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -246,7 +251,7 @@ def dashboard():
     conn.close()
     
     # Get application stats from user's database
-    user_db_path = f"user_{current_user.id}_jobs.db"
+    user_db_path = os.path.join(DATABASE_DIR, f"user_{current_user.id}_jobs.db")
     if os.path.exists(user_db_path):
         with JobDatabase(user_db_path) as db:
             stats = db.get_application_stats()
@@ -267,6 +272,11 @@ def settings():
     cursor = conn.cursor()
     
     if request.method == 'POST':
+        # Ensure user_settings row exists (create if doesn't)
+        cursor.execute("SELECT id FROM user_settings WHERE user_id = ?", (current_user.id,))
+        if not cursor.fetchone():
+            cursor.execute("INSERT INTO user_settings (user_id) VALUES (?)", (current_user.id,))
+        
         # Update settings
         cursor.execute("""
             UPDATE user_settings SET
@@ -300,9 +310,22 @@ def settings():
         
         conn.commit()
         flash('Settings updated successfully!', 'success')
+        
+        # Redirect to GET to prevent form resubmission
+        conn.close()
+        return redirect(url_for('settings'))
     
+    # GET request - fetch settings
     cursor.execute("SELECT * FROM user_settings WHERE user_id = ?", (current_user.id,))
     user_settings = cursor.fetchone()
+    
+    # If no settings exist yet (shouldn't happen but just in case)
+    if not user_settings:
+        cursor.execute("INSERT INTO user_settings (user_id) VALUES (?)", (current_user.id,))
+        conn.commit()
+        cursor.execute("SELECT * FROM user_settings WHERE user_id = ?", (current_user.id,))
+        user_settings = cursor.fetchone()
+    
     conn.close()
     
     return render_template('settings.html', settings=user_settings)
@@ -570,7 +593,7 @@ def run_automation_task(user_id, run_id):
     conn.close()
     
     # Initialize user's database
-    user_db_path = f"user_{user_id}_jobs.db"
+    user_db_path = os.path.join(DATABASE_DIR, f"user_{user_id}_jobs.db")
     db = JobDatabase(user_db_path)
     
     # Get resume text
@@ -615,7 +638,7 @@ def run_automation_task(user_id, run_id):
 @login_required
 def applications():
     """View user's applications"""
-    user_db_path = f"user_{current_user.id}_jobs.db"
+    user_db_path = os.path.join(DATABASE_DIR, f"user_{current_user.id}_jobs.db")
     
     if not os.path.exists(user_db_path):
         return render_template('applications.html', applications=[])
