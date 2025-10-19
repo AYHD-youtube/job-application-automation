@@ -445,8 +445,10 @@ def authorize_gmail():
         return redirect(url_for('settings'))
     
     try:
-        # Create flow
+        # Create flow - force HTTPS for redirect URI
         redirect_uri = url_for('gmail_callback', _external=True)
+        if redirect_uri.startswith('http://'):
+            redirect_uri = redirect_uri.replace('http://', 'https://')
         print(f"DEBUG: Gmail redirect URI: {redirect_uri}")
         
         flow = Flow.from_client_secrets_file(
@@ -495,12 +497,16 @@ def gmail_callback():
     credentials_path = os.path.join(app.config['CREDENTIALS_FOLDER'], result['gmail_credentials'])
     
     try:
-        # Create flow
+        # Create flow - force HTTPS for redirect URI
+        redirect_uri = url_for('gmail_callback', _external=True)
+        if redirect_uri.startswith('http://'):
+            redirect_uri = redirect_uri.replace('http://', 'https://')
+        
         flow = Flow.from_client_secrets_file(
             credentials_path,
             scopes=SCOPES,
             state=state,
-            redirect_uri=url_for('gmail_callback', _external=True)
+            redirect_uri=redirect_uri
         )
         
         # Fetch token
