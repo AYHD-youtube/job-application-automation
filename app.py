@@ -268,25 +268,10 @@ def dashboard():
 @login_required
 def settings():
     """User settings page"""
-    print(f"DEBUG: Settings route called - Method: {request.method}")
     conn = get_user_db()
     cursor = conn.cursor()
     
     if request.method == 'POST':
-        # Debug: Print ALL form data
-        print(f"DEBUG: User {current_user.id} ALL form data: {dict(request.form)}")
-        
-        # Debug: Print specific fields
-        form_data = {
-            'google_api_key': request.form.get('google_api_key'),
-            'hunter_api_key': request.form.get('hunter_api_key'),
-            'sender_email': request.form.get('sender_email'),
-            'sender_name': request.form.get('sender_name'),
-            'linkedin_search_url': request.form.get('linkedin_search_url'),
-            'linkedin_cookie': request.form.get('linkedin_cookie', ''),
-            'excluded_companies': request.form.get('excluded_companies', ''),
-        }
-        print(f"DEBUG: User {current_user.id} processed form data: {form_data}")
         
         # Ensure user_settings row exists (create if doesn't)
         cursor.execute("SELECT id FROM user_settings WHERE user_id = ?", (current_user.id,))
@@ -324,9 +309,6 @@ def settings():
             current_user.id
         ))
         
-        # Debug: Check if update worked
-        rows_affected = cursor.rowcount
-        print(f"DEBUG: UPDATE affected {rows_affected} rows")
         
         conn.commit()
         flash('Settings updated successfully!', 'success')
@@ -348,8 +330,6 @@ def settings():
     
     conn.close()
     
-    # Debug: Print settings to logs
-    print(f"DEBUG: User {current_user.id} settings: {dict(user_settings) if user_settings else 'None'}")
     
     return render_template('settings.html', settings=user_settings)
 

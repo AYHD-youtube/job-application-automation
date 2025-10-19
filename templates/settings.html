@@ -8,14 +8,7 @@
                 <h3 class="mb-0"><i class="bi bi-gear"></i> Settings</h3>
             </div>
             <div class="card-body p-4">
-                <!-- DEBUG: Settings object -->
-                <div style="display: none;">
-                    <p>DEBUG: Settings object: {{ settings }}</p>
-                    <p>DEBUG: Google API Key: {{ settings.google_api_key if settings else 'None' }}</p>
-                    <p>DEBUG: Hunter API Key: {{ settings.hunter_api_key if settings else 'None' }}</p>
-                </div>
-                
-                <form method="POST" action="{{ url_for('settings') }}" onsubmit="console.log('Form submitting...'); return true;">
+                <form method="POST" action="{{ url_for('settings') }}">
                     <!-- API Keys Section -->
                     <h5 class="mb-3"><i class="bi bi-key"></i> API Keys</h5>
                     
@@ -121,7 +114,7 @@
                     </div>
                     
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-primary btn-lg" onclick="console.log('Save button clicked'); console.log('Name field value:', document.getElementById('sender_name').value); console.log('Email field value:', document.getElementById('sender_email').value); console.log('LinkedIn URL value:', document.getElementById('linkedin_search_url').value);">
+                        <button type="submit" class="btn btn-primary btn-lg">
                             <i class="bi bi-save"></i> Save Settings
                         </button>
                     </div>
