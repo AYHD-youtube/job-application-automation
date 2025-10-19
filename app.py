@@ -16,6 +16,7 @@ import threading
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
+from google.auth.transport.requests import Request
 import pickle
 
 # Import our automation modules
@@ -684,7 +685,20 @@ def send_application_email(sender_email, sender_name, hr_email, job_title, compa
             return False
         
         # Load credentials
-        creds = pickle.loads(result['gmail_token'])
+        creds_data = pickle.loads(result['gmail_token'])
+        
+        # Create credentials object
+        from google.oauth2.credentials import Credentials
+        creds = Credentials.from_authorized_user_info(creds_data, SCOPES)
+        
+        # Refresh credentials if needed
+        if not creds.valid:
+            if creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                print("Credentials are invalid and cannot be refreshed")
+                return False
+        
         service = build('gmail', 'v1', credentials=creds)
         
         # Create email message
@@ -708,6 +722,7 @@ Content-Type: text/html; charset=utf-8
             body={'raw': message_b64}
         ).execute()
         
+        print(f"  Email sent successfully: {message.get('id')}")
         return True
     except Exception as e:
         print(f"Error sending email: {e}")
