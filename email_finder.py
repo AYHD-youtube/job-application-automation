@@ -115,15 +115,22 @@ def find_company_domain_and_emails(
             response.raise_for_status()
             data = response.json()
             
+            print(f"  Hunter.io API response: {data}")
+            
             # Extract domain and emails
             domain = data.get('data', {}).get('domain', '')
             emails = []
             email_data = data.get('data', {}).get('emails', [])
             
+            print(f"  Extracted domain: {domain}")
+            print(f"  Email data: {email_data}")
+            
             for entry in email_data:
                 email = entry.get('value')
                 if email:
                     emails.append(email)
+            
+            print(f"  Final emails list: {emails}")
             
             return {
                 'domain': domain,
