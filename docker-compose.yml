@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: job-automation-app
+    ports:
+      - "8001:8001"
+    volumes:
+      # Persist user data
+      - ./data/uploads:/app/uploads
+      - ./data/user_credentials:/app/user_credentials
+      - ./data/databases:/app/databases
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=production
+      - SECRET_KEY=${SECRET_KEY:-change-this-secret-key-in-production}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  uploads:
+  user_credentials:
+  databases:
+

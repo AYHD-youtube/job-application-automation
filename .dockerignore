@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+venv/
+env/
+ENV/
+.venv/
+
+# User data and credentials
+credentials.json
+token.json
+credentials_config.py
+*.db
+uploads/
+user_credentials/
+data/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation (optional - keep if you want them in image)
+*.md
+!README.md
+
+# Cache
+*.cache
+resume_cache.txt
+resume.pdf
+
+# Logs
+*.log
+

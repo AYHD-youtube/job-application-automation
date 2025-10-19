@@ -123,9 +123,26 @@ The app will be available at: **http://localhost:5000**
    - Click "Start Automation"
    - Watch your applications!
 
+## 🐳 Docker Deployment
+
+Want to deploy on a server? Use Docker!
+
+```bash
+# Quick deployment
+./deploy.sh
+
+# Or manually
+docker-compose up -d
+```
+
+Access at: **http://your-server:8001**
+
+**📖 See [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md) for complete deployment guide**
+
 ## 📖 Documentation
 
 - **README.md** - This file (main documentation)
+- **DOCKER_DEPLOYMENT.md** - Docker deployment guide (server setup)
 - **GMAIL_SETUP_GUIDE.md** - Complete Gmail API setup guide (step-by-step)
 - **FLASK_README.md** - Web app documentation and features
 - **LINKEDIN_COOKIE_GUIDE.md** - How to get LinkedIn cookie for rate limit bypass
