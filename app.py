@@ -555,8 +555,26 @@ def gmail_callback():
 @login_required
 def revoke_gmail():
     """Revoke Gmail authorization"""
+    # Try to revoke the token with Google first
     conn = get_user_db()
     cursor = conn.cursor()
+    cursor.execute("SELECT gmail_token FROM user_settings WHERE user_id = ?", (current_user.id,))
+    result = cursor.fetchone()
+    
+    if result and result['gmail_token']:
+        try:
+            import requests
+            creds_data = pickle.loads(result['gmail_token'])
+            if 'token' in creds_data and creds_data['token']:
+                # Revoke the token with Google
+                revoke_url = 'https://oauth2.googleapis.com/revoke'
+                requests.post(revoke_url, 
+                            params={'token': creds_data['token']},
+                            headers={'content-type': 'application/x-www-form-urlencoded'})
+        except Exception as e:
+            print(f"Error revoking token: {e}")
+    
+    # Clear the token from database
     cursor.execute("""
         UPDATE user_settings 
         SET gmail_token = NULL, gmail_authenticated = 0
@@ -565,7 +583,7 @@ def revoke_gmail():
     conn.commit()
     conn.close()
     
-    flash('Gmail authorization revoked', 'info')
+    flash('Gmail authorization revoked. You can now re-authorize with the correct scopes.', 'info')
     return redirect(url_for('settings'))
 
 
