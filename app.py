@@ -826,12 +826,23 @@ def run_automation_task(user_id, run_id):
                     continue
                 
                 # Generate cover letter
+                # Create scoring data from the AI score result
+                scoring_data = {
+                    'score': relevance_score,
+                    'reasoning': 'AI-generated cover letter',
+                    'key_matches': [],
+                    'missing_skills': []
+                }
+                
+                # Create resume URL (placeholder for now)
+                resume_url = f"https://cold.ayhd.dev/uploads/{settings['resume_filename']}"
+                
                 cover_letter = generate_cover_letter(
                     job_data, 
                     resume_text, 
+                    scoring_data,
                     settings['google_api_key'],
-                    settings.get('custom_prompt', ''),
-                    settings.get('sender_name', '')
+                    resume_url
                 )
                 
                 # Send email
