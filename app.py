@@ -268,6 +268,7 @@ def dashboard():
 @login_required
 def settings():
     """User settings page"""
+    print(f"DEBUG: Settings route called - Method: {request.method}")
     conn = get_user_db()
     cursor = conn.cursor()
     
