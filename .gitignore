@@ -47,6 +47,7 @@ user_*_jobs.db
 # Flask
 instance/
 uploads/
+user_credentials/
 *.pyc
 __pycache__/
 

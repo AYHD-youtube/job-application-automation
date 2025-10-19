@@ -13,6 +13,10 @@ import sqlite3
 import json
 from datetime import datetime
 import threading
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import Flow
+from googleapiclient.discovery import build
+import pickle
 
 # Import our automation modules
 from database import JobDatabase
@@ -25,10 +29,16 @@ from email_sender import send_to_multiple_recipients
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-change-this-in-production'
 app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['CREDENTIALS_FOLDER'] = 'user_credentials'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
-# Ensure upload folder exists
+# Ensure folders exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(app.config['CREDENTIALS_FOLDER'], exist_ok=True)
+
+# OAuth 2.0 scopes
+SCOPES = ['https://www.googleapis.com/auth/gmail.send', 
+          'https://www.googleapis.com/auth/gmail.compose']
 
 # Flask-Login setup
 login_manager = LoginManager()
@@ -75,6 +85,8 @@ def init_user_db():
             google_api_key TEXT,
             hunter_api_key TEXT,
             gmail_credentials TEXT,
+            gmail_token BLOB,
+            gmail_authenticated INTEGER DEFAULT 0,
             sender_email TEXT,
             sender_name TEXT,
             resume_filename TEXT,
@@ -325,6 +337,192 @@ def upload_resume():
     else:
         flash('Please upload a PDF file', 'error')
     
+    return redirect(url_for('settings'))
+
+
+@app.route('/upload_gmail_credentials', methods=['POST'])
+@login_required
+def upload_gmail_credentials():
+    """Upload Gmail OAuth credentials.json file"""
+    if 'credentials' not in request.files:
+        flash('No file uploaded', 'error')
+        return redirect(url_for('settings'))
+    
+    file = request.files['credentials']
+    
+    if file.filename == '':
+        flash('No file selected', 'error')
+        return redirect(url_for('settings'))
+    
+    if file and file.filename.endswith('.json'):
+        try:
+            # Read and validate JSON
+            credentials_data = json.load(file)
+            
+            # Check if it's a valid OAuth credentials file
+            if 'installed' not in credentials_data and 'web' not in credentials_data:
+                flash('Invalid credentials file. Please upload the credentials.json from Google Cloud Console.', 'error')
+                return redirect(url_for('settings'))
+            
+            # Save credentials for this user
+            filename = f"user_{current_user.id}_credentials.json"
+            filepath = os.path.join(app.config['CREDENTIALS_FOLDER'], filename)
+            
+            # Reset file pointer and save
+            file.seek(0)
+            file.save(filepath)
+            
+            # Update database
+            conn = get_user_db()
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE user_settings SET gmail_credentials = ?, gmail_authenticated = 0 WHERE user_id = ?",
+                (filename, current_user.id)
+            )
+            conn.commit()
+            conn.close()
+            
+            flash('Gmail credentials uploaded! Now click "Authorize Gmail" to complete setup.', 'success')
+        except json.JSONDecodeError:
+            flash('Invalid JSON file', 'error')
+        except Exception as e:
+            flash(f'Error uploading credentials: {str(e)}', 'error')
+    else:
+        flash('Please upload a JSON file', 'error')
+    
+    return redirect(url_for('settings'))
+
+
+@app.route('/authorize_gmail')
+@login_required
+def authorize_gmail():
+    """Initiate Gmail OAuth flow"""
+    # Get user's credentials file
+    conn = get_user_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT gmail_credentials FROM user_settings WHERE user_id = ?", (current_user.id,))
+    result = cursor.fetchone()
+    conn.close()
+    
+    if not result or not result['gmail_credentials']:
+        flash('Please upload credentials.json first', 'error')
+        return redirect(url_for('settings'))
+    
+    credentials_path = os.path.join(app.config['CREDENTIALS_FOLDER'], result['gmail_credentials'])
+    
+    if not os.path.exists(credentials_path):
+        flash('Credentials file not found. Please upload again.', 'error')
+        return redirect(url_for('settings'))
+    
+    try:
+        # Create flow
+        flow = Flow.from_client_secrets_file(
+            credentials_path,
+            scopes=SCOPES,
+            redirect_uri=url_for('gmail_callback', _external=True)
+        )
+        
+        authorization_url, state = flow.authorization_url(
+            access_type='offline',
+            include_granted_scopes='true',
+            prompt='consent'
+        )
+        
+        # Store state in session
+        session['oauth_state'] = state
+        session['oauth_user_id'] = current_user.id
+        
+        return redirect(authorization_url)
+    except Exception as e:
+        flash(f'Error starting authorization: {str(e)}', 'error')
+        return redirect(url_for('settings'))
+
+
+@app.route('/gmail/callback')
+def gmail_callback():
+    """Handle Gmail OAuth callback"""
+    if 'oauth_state' not in session or 'oauth_user_id' not in session:
+        flash('Invalid OAuth state', 'error')
+        return redirect(url_for('login'))
+    
+    user_id = session['oauth_user_id']
+    state = session['oauth_state']
+    
+    # Get user's credentials file
+    conn = get_user_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT gmail_credentials FROM user_settings WHERE user_id = ?", (user_id,))
+    result = cursor.fetchone()
+    
+    if not result or not result['gmail_credentials']:
+        conn.close()
+        flash('Credentials not found', 'error')
+        return redirect(url_for('settings'))
+    
+    credentials_path = os.path.join(app.config['CREDENTIALS_FOLDER'], result['gmail_credentials'])
+    
+    try:
+        # Create flow
+        flow = Flow.from_client_secrets_file(
+            credentials_path,
+            scopes=SCOPES,
+            state=state,
+            redirect_uri=url_for('gmail_callback', _external=True)
+        )
+        
+        # Fetch token
+        flow.fetch_token(authorization_response=request.url)
+        
+        # Get credentials
+        credentials = flow.credentials
+        
+        # Serialize credentials
+        creds_data = {
+            'token': credentials.token,
+            'refresh_token': credentials.refresh_token,
+            'token_uri': credentials.token_uri,
+            'client_id': credentials.client_id,
+            'client_secret': credentials.client_secret,
+            'scopes': credentials.scopes
+        }
+        
+        # Save to database
+        cursor.execute("""
+            UPDATE user_settings 
+            SET gmail_token = ?, gmail_authenticated = 1, updated_at = CURRENT_TIMESTAMP
+            WHERE user_id = ?
+        """, (pickle.dumps(creds_data), user_id))
+        conn.commit()
+        conn.close()
+        
+        # Clear session
+        session.pop('oauth_state', None)
+        session.pop('oauth_user_id', None)
+        
+        flash('Gmail authorized successfully! You can now send emails.', 'success')
+        return redirect(url_for('settings'))
+        
+    except Exception as e:
+        conn.close()
+        flash(f'Error completing authorization: {str(e)}', 'error')
+        return redirect(url_for('settings'))
+
+
+@app.route('/revoke_gmail')
+@login_required
+def revoke_gmail():
+    """Revoke Gmail authorization"""
+    conn = get_user_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE user_settings 
+        SET gmail_token = NULL, gmail_authenticated = 0
+        WHERE user_id = ?
+    """, (current_user.id,))
+    conn.commit()
+    conn.close()
+    
+    flash('Gmail authorization revoked', 'info')
     return redirect(url_for('settings'))
 
 
