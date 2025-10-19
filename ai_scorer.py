@@ -184,7 +184,7 @@ Description: {job_data.get('Description', 'N/A')}
         # Add professional footer
         footer = f"""
 <p><br></p>
-<p><em>Please find my resume attached. I look forward to discussing this opportunity further.</em></p>"""
+<p><em>I have attached my resume for your review. I look forward to discussing this opportunity further.</em></p>"""
         
         cover_letter = cover_letter + footer
         

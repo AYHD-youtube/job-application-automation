@@ -683,7 +683,7 @@ def find_company_domain_and_email(company_name, hunter_api_key):
 
 
 def send_application_email(sender_email, sender_name, hr_email, job_title, company, cover_letter, settings):
-    """Send application email using Gmail API"""
+    """Send application email with resume attachment using Gmail API"""
     try:
         # Get Gmail credentials
         conn = get_user_db()
@@ -713,28 +713,53 @@ def send_application_email(sender_email, sender_name, hr_email, job_title, compa
         
         service = build('gmail', 'v1', credentials=creds)
         
-        # Create email message
-        subject = f"Application for {job_title} at {company}"
+        # Get resume file path
+        resume_path = os.path.join(app.config['UPLOAD_FOLDER'], settings['resume_filename'])
+        if not os.path.exists(resume_path):
+            print(f"Resume file not found: {resume_path}")
+            return False
         
-        # Create proper email message
-        message_text = f"""To: {hr_email}
-Subject: {subject}
-Content-Type: text/html; charset=utf-8
-
-{cover_letter}"""
+        # Read resume file
+        with open(resume_path, 'rb') as f:
+            resume_data = f.read()
         
-        # Encode message properly for Gmail API
+        # Create multipart email with attachment
+        import email.mime.multipart
+        import email.mime.text
+        import email.mime.base
+        
+        # Create message
+        msg = email.mime.multipart.MIMEMultipart()
+        msg['To'] = hr_email
+        msg['From'] = f"{sender_name} <{sender_email}>"
+        msg['Subject'] = f"Application for {job_title} at {company}"
+        
+        # Add cover letter as HTML body
+        html_part = email.mime.text.MIMEText(cover_letter, 'html')
+        msg.attach(html_part)
+        
+        # Add resume as attachment
+        resume_attachment = email.mime.base.MIMEBase('application', 'pdf')
+        resume_attachment.set_payload(resume_data)
+        import email.encoders
+        email.encoders.encode_base64(resume_attachment)
+        resume_attachment.add_header(
+            'Content-Disposition',
+            f'attachment; filename="{settings["resume_filename"]}"'
+        )
+        msg.attach(resume_attachment)
+        
+        # Encode message
         import base64
-        message_bytes = message_text.encode('utf-8')
-        message_b64 = base64.urlsafe_b64encode(message_bytes).decode('utf-8')
+        raw_message = base64.urlsafe_b64encode(msg.as_bytes()).decode('utf-8')
         
         # Send email
         message = service.users().messages().send(
             userId='me',
-            body={'raw': message_b64}
+            body={'raw': raw_message}
         ).execute()
         
-        print(f"  Email sent successfully: {message.get('id')}")
+        print(f"  Email sent successfully with resume attachment: {message.get('id')}")
         return True
     except Exception as e:
         print(f"Error sending email: {e}")
