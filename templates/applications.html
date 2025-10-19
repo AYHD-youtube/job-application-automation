@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="mb-0"><i class="bi bi-file-earmark-text"></i> Your Applications</h3>
+    </div>
+    <div class="card-body">
+        {% if applications %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Company</th>
+                            <th>Position</th>
+                            <th>Score</th>
+                            <th>Date</th>
+                            <th>Emails</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for app in applications %}
+                        <tr>
+                            <td><strong>{{ app.company }}</strong></td>
+                            <td>{{ app.title }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if app.relevance_score >= 80 else 'primary' if app.relevance_score >= 60 else 'warning' }}">
+                                    {{ app.relevance_score }}/100
+                                </span>
+                            </td>
+                            <td>{{ app.applied_date }}</td>
+                            <td>
+                                <small class="text-muted">{{ app.emails or 'N/A' }}</small>
+                            </td>
+                            <td>
+                                <a href="{{ app.job_url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-box-arrow-up-right"></i> View Job
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-inbox" style="font-size: 4rem; color: #ccc;"></i>
+                <h4 class="mt-3">No applications yet</h4>
+                <p class="text-muted">Start the automation to begin applying to jobs!</p>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-primary">
+                    Go to Dashboard
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2 class="text-white">Welcome, {{ current_user.name }}!</h2>
+        <p class="text-white-50">Manage your automated job applications</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="bi bi-briefcase text-primary"></i>
+            <h3>{{ stats.total_jobs }}</h3>
+            <p>Jobs Processed</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="bi bi-check-circle text-success"></i>
+            <h3>{{ stats.applications_sent }}</h3>
+            <p>Applications Sent</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="bi bi-x-circle text-warning"></i>
+            <h3>{{ stats.jobs_skipped }}</h3>
+            <p>Jobs Skipped</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="bi bi-envelope text-info"></i>
+            <h3>{{ stats.emails_sent }}</h3>
+            <p>Emails Sent</p>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="bi bi-clock-history"></i> Recent Runs</h4>
+            </div>
+            <div class="card-body">
+                {% if recent_runs %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Started</th>
+                                    <th>Status</th>
+                                    <th>Processed</th>
+                                    <th>Applied</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for run in recent_runs %}
+                                <tr>
+                                    <td>{{ run.started_at }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if run.status == 'completed' else 'warning' }}">
+                                            {{ run.status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ run.jobs_processed }}</td>
+                                    <td>{{ run.applications_sent }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center py-4">No automation runs yet. Start your first run!</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="bi bi-play-circle"></i> Quick Actions</h4>
+            </div>
+            <div class="card-body">
+                {% if settings and settings.resume_filename and settings.google_api_key %}
+                    <form method="POST" action="{{ url_for('run_automation') }}">
+                        <button type="submit" class="btn btn-success w-100 mb-3">
+                            <i class="bi bi-rocket"></i> Start Automation
+                        </button>
+                    </form>
+                {% else %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> 
+                        Please complete your settings first:
+                        <ul class="mb-0 mt-2">
+                            {% if not settings.resume_filename %}
+                                <li>Upload resume</li>
+                            {% endif %}
+                            {% if not settings.google_api_key %}
+                                <li>Add Google API key</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                {% endif %}
+                
+                <a href="{{ url_for('settings') }}" class="btn btn-outline-primary w-100 mb-2">
+                    <i class="bi bi-gear"></i> Settings
+                </a>
+                <a href="{{ url_for('applications') }}" class="btn btn-outline-secondary w-100">
+                    <i class="bi bi-file-earmark-text"></i> View Applications
+                </a>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-body">
+                <h5><i class="bi bi-info-circle"></i> How It Works</h5>
+                <ol class="small">
+                    <li>Upload your resume</li>
+                    <li>Configure your API keys</li>
+                    <li>Set job search criteria</li>
+                    <li>Click "Start Automation"</li>
+                    <li>Track applications in real-time</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

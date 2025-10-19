@@ -1,0 +1,28 @@
+# requirements.txt
+# Core dependencies for automated job application system
+
+# Web Framework
+Flask>=3.0.0
+Flask-Login>=0.6.3
+Werkzeug>=3.0.0
+
+# Web scraping
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+
+# Google APIs
+google-api-python-client>=2.100.0
+google-auth-httplib2>=0.1.1
+google-auth-oauthlib>=1.1.0
+google-generativeai>=0.3.0
+
+# PDF processing
+PyPDF2>=3.0.0
+
+# Scheduling (optional)
+schedule>=1.2.0
+
+# Type hints support
+typing-extensions>=4.8.0
+

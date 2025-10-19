@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row align-items-center" style="min-height: 70vh;">
+    <div class="col-lg-6">
+        <h1 class="display-3 fw-bold text-white mb-4">
+            Automate Your Job Applications
+        </h1>
+        <p class="lead text-white mb-4">
+            Let AI handle your job search. Upload your resume, set your preferences, 
+            and watch as our system finds and applies to relevant positions automatically.
+        </p>
+        <div class="d-grid gap-3 d-sm-flex">
+            <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">
+                Get Started <i class="bi bi-arrow-right"></i>
+            </a>
+            <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-lg">
+                Login
+            </a>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-body p-5">
+                <h3 class="card-title mb-4">Features</h3>
+                <div class="d-flex mb-3">
+                    <i class="bi bi-check-circle-fill text-success fs-4 me-3"></i>
+                    <div>
+                        <h5>AI-Powered Matching</h5>
+                        <p class="text-muted">Intelligent job scoring based on your resume</p>
+                    </div>
+                </div>
+                <div class="d-flex mb-3">
+                    <i class="bi bi-check-circle-fill text-success fs-4 me-3"></i>
+                    <div>
+                        <h5>Personalized Cover Letters</h5>
+                        <p class="text-muted">Auto-generated for each application</p>
+                    </div>
+                </div>
+                <div class="d-flex mb-3">
+                    <i class="bi bi-check-circle-fill text-success fs-4 me-3"></i>
+                    <div>
+                        <h5>Email Discovery</h5>
+                        <p class="text-muted">Find HR contacts automatically</p>
+                    </div>
+                </div>
+                <div class="d-flex">
+                    <i class="bi bi-check-circle-fill text-success fs-4 me-3"></i>
+                    <div>
+                        <h5>Track Everything</h5>
+                        <p class="text-muted">Complete history of all applications</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="mb-0"><i class="bi bi-gear"></i> Settings</h3>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST">
+                    <!-- API Keys Section -->
+                    <h5 class="mb-3"><i class="bi bi-key"></i> API Keys</h5>
+                    
+                    <div class="mb-3">
+                        <label for="google_api_key" class="form-label">
+                            Google Gemini API Key <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="google_api_key" name="google_api_key" 
+                               value="{{ settings.google_api_key or '' }}" required>
+                        <small class="text-muted">Get from <a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a></small>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="hunter_api_key" class="form-label">
+                            Hunter.io API Key <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="hunter_api_key" name="hunter_api_key" 
+                               value="{{ settings.hunter_api_key or '' }}" required>
+                        <small class="text-muted">Get from <a href="https://hunter.io/api" target="_blank">Hunter.io</a></small>
+                    </div>
+                    
+                    <hr>
+                    
+                    <!-- Email Settings -->
+                    <h5 class="mb-3"><i class="bi bi-envelope"></i> Email Settings</h5>
+                    
+                    <div class="mb-3">
+                        <label for="sender_name" class="form-label">Your Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="sender_name" name="sender_name" 
+                               value="{{ settings.sender_name or '' }}" required>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="sender_email" class="form-label">Your Email <span class="text-danger">*</span></label>
+                        <input type="email" class="form-control" id="sender_email" name="sender_email" 
+                               value="{{ settings.sender_email or '' }}" required>
+                        <small class="text-muted">Gmail account used for sending applications</small>
+                    </div>
+                    
+                    <hr>
+                    
+                    <!-- Job Search Settings -->
+                    <h5 class="mb-3"><i class="bi bi-search"></i> Job Search Settings</h5>
+                    
+                    <div class="mb-3">
+                        <label for="linkedin_search_url" class="form-label">
+                            LinkedIn Search URL <span class="text-danger">*</span>
+                        </label>
+                        <textarea class="form-control" id="linkedin_search_url" name="linkedin_search_url" 
+                                  rows="3" required>{{ settings.linkedin_search_url or '' }}</textarea>
+                        <small class="text-muted">Copy the full LinkedIn job search URL with your filters</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="linkedin_cookie" class="form-label">
+                            LinkedIn Cookie (li_at) <span class="badge bg-info">Optional</span>
+                        </label>
+                        <input type="text" class="form-control" id="linkedin_cookie" name="linkedin_cookie" 
+                               value="{{ settings.linkedin_cookie or '' }}" placeholder="AQEDATXNAAABk...">
+                        <small class="text-muted">
+                            <strong>Helps avoid rate limiting.</strong> To get: Open LinkedIn → DevTools (F12) → Application → Cookies → linkedin.com → Copy "li_at" value
+                            <br><span class="text-warning">⚠️ Keep this secure - it grants access to your LinkedIn account</span>
+                        </small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="max_days_posted" class="form-label">Max Days Posted</label>
+                            <input type="number" class="form-control" id="max_days_posted" name="max_days_posted" 
+                                   value="{{ settings.max_days_posted or 14 }}" min="1" max="90">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="max_applicants" class="form-label">Max Applicants</label>
+                            <input type="number" class="form-control" id="max_applicants" name="max_applicants" 
+                                   value="{{ settings.max_applicants or 500 }}" min="1" max="10000">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="min_relevance_score" class="form-label">Min Score (0-100)</label>
+                            <input type="number" class="form-control" id="min_relevance_score" name="min_relevance_score" 
+                                   value="{{ settings.min_relevance_score or 60 }}" min="0" max="100">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="excluded_companies" class="form-label">Excluded Companies</label>
+                        <input type="text" class="form-control" id="excluded_companies" name="excluded_companies" 
+                               value="{{ settings.excluded_companies or '' }}" placeholder="Company1, Company2, Company3">
+                        <small class="text-muted">Comma-separated list of companies to skip</small>
+                    </div>
+                    
+                    <hr>
+                    
+                    <!-- Custom AI Prompt -->
+                    <h5 class="mb-3"><i class="bi bi-robot"></i> Custom AI Prompt (Optional)</h5>
+                    
+                    <div class="mb-4">
+                        <label for="custom_prompt" class="form-label">Custom Scoring Prompt</label>
+                        <textarea class="form-control" id="custom_prompt" name="custom_prompt" 
+                                  rows="5" placeholder="Leave empty to use default prompt">{{ settings.custom_prompt or '' }}</textarea>
+                        <small class="text-muted">Customize how AI scores job relevance. Use {job_title}, {company}, {description}, {resume} as placeholders.</small>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-save"></i> Save Settings
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Resume Upload Card -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="bi bi-file-earmark-pdf"></i> Resume</h4>
+            </div>
+            <div class="card-body">
+                {% if settings.resume_filename %}
+                    <div class="alert alert-success">
+                        <i class="bi bi-check-circle"></i> Resume uploaded: <strong>{{ settings.resume_filename }}</strong>
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> No resume uploaded yet
+                    </div>
+                {% endif %}
+                
+                <form method="POST" action="{{ url_for('upload_resume') }}" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="resume" class="form-label">Upload Resume (PDF only)</label>
+                        <input type="file" class="form-control" id="resume" name="resume" accept=".pdf" required>
+                    </div>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-upload"></i> Upload Resume
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

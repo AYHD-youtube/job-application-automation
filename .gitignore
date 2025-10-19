@@ -1,0 +1,68 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Credentials and tokens (NEVER COMMIT THESE!)
+credentials.json
+token.json
+credentials_config.py
+.env
+
+# API Keys and secrets
+*.key
+*.pem
+secrets.json
+
+# Logs and data
+*.log
+*.csv
+automation.log
+job_applications.csv
+job_applications.db
+users.db
+user_*_jobs.db
+
+# Flask
+instance/
+uploads/
+*.pyc
+__pycache__/
+
+# Cache and Resume files
+resume_cache.txt
+resume.pdf
+*.cache
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS
+Thumbs.db
+
