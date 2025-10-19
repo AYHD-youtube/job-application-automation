@@ -446,10 +446,13 @@ def authorize_gmail():
     
     try:
         # Create flow
+        redirect_uri = url_for('gmail_callback', _external=True)
+        print(f"DEBUG: Gmail redirect URI: {redirect_uri}")
+        
         flow = Flow.from_client_secrets_file(
             credentials_path,
             scopes=SCOPES,
-            redirect_uri=url_for('gmail_callback', _external=True)
+            redirect_uri=redirect_uri
         )
         
         authorization_url, state = flow.authorization_url(
