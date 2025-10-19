@@ -32,6 +32,10 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['CREDENTIALS_FOLDER'] = 'user_credentials'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
+# Configure Flask to work behind a reverse proxy (Caddy)
+from werkzeug.middleware.proxy_fix import ProxyFix
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=0)
+
 # Database directory
 DATABASE_DIR = 'databases'
 os.makedirs(DATABASE_DIR, exist_ok=True)
