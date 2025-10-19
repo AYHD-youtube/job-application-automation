@@ -867,8 +867,8 @@ def run_automation_task(user_id, run_id):
                     'missing_skills': []
                 }
                 
-                # Create resume URL (placeholder for now)
-                resume_url = f"https://cold.ayhd.dev/uploads/{settings['resume_filename']}"
+                # Create resume URL - use a more reliable approach
+                resume_url = f"Resume attached as PDF file"
                 
                 cover_letter = generate_cover_letter(
                     job_data, 

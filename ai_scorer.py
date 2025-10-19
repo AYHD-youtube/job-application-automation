@@ -153,7 +153,7 @@ Description: {job_data.get('Description', 'N/A')}
 {resume_text}
 
 **INSTRUCTIONS:**
-1. Start with ONLY ONE greeting: "Dear {{Company}} Hiring Team," (use the actual company name)
+1. Start with ONLY ONE greeting: "Dear {job_data.get('Company', 'Hiring Team')} Hiring Team," (use the actual company name from job_data)
 2. Write 3-4 paragraphs emphasizing the key matching skills ({key_matches})
 3. Provide specific examples of achievements
 4. If any missing skills are trainable, express enthusiasm to learn
@@ -161,7 +161,7 @@ Description: {job_data.get('Description', 'N/A')}
 6. DO NOT add any resume links or job URLs in the body - they will be added automatically
 
 **FORMAT:**
-- Start with single greeting line: "Dear {{Company}} Hiring Team,"
+- Start with single greeting line: "Dear [ACTUAL_COMPANY_NAME] Hiring Team,"
 - 3-4 body paragraphs (250-300 words)
 - End with "Regards," and candidate name
 - Professional but personable tone
@@ -181,11 +181,10 @@ Description: {job_data.get('Description', 'N/A')}
             paragraphs = cover_letter.split('\n\n')
             cover_letter = '\n'.join(f'<p>{p.strip()}</p>' for p in paragraphs if p.strip())
         
-        # Add resume and job link after the signature
+        # Add professional footer
         footer = f"""
 <p><br></p>
-<p>Resume: <a href="{resume_url}">{resume_url}</a><br>
-Job URL: <a href="{job_data.get('job_url', '')}">{job_data.get('job_url', '')}</a></p>"""
+<p><em>Please find my resume attached. I look forward to discussing this opportunity further.</em></p>"""
         
         cover_letter = cover_letter + footer
         
