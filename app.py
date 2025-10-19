@@ -799,6 +799,10 @@ def run_automation_task(user_id, run_id):
                 except Exception as e:
                     print(f"User {user_id}: Error scraping job details from {job_url}: {e}")
                     jobs_skipped += 1
+                    # Add delay after rate limiting errors
+                    if "429" in str(e):
+                        print(f"User {user_id}: Rate limited, waiting 5 seconds...")
+                        time.sleep(5)
                     continue
                 
                 jobs_processed += 1
@@ -900,10 +904,9 @@ def run_automation_task(user_id, run_id):
                 status = 'completed',
                 jobs_processed = ?,
                 applications_sent = ?,
-                jobs_skipped = ?,
                 completed_at = CURRENT_TIMESTAMP
             WHERE id = ?
-        """, (jobs_processed, applications_sent, jobs_skipped, run_id))
+        """, (jobs_processed, applications_sent, run_id))
         conn.commit()
         conn.close()
         
