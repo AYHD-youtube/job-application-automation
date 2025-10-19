@@ -267,8 +267,12 @@ def dashboard():
     # Get stats from user's job database
     user_db_path = os.path.join(DATABASE_DIR, f"user_{current_user.id}_jobs.db")
     if os.path.exists(user_db_path):
-        with JobDatabase(user_db_path) as db:
-            stats = db.get_application_stats()
+        try:
+            with JobDatabase(user_db_path) as db:
+                stats = db.get_application_stats()
+        except Exception as e:
+            print(f"Error reading user database: {e}")
+            stats = {'total_jobs': 0, 'applications_sent': 0, 'jobs_skipped': 0, 'emails_sent': 0}
     else:
         stats = {'total_jobs': 0, 'applications_sent': 0, 'jobs_skipped': 0, 'emails_sent': 0}
     
@@ -763,7 +767,13 @@ def run_automation_task(user_id, run_id):
         
         # Initialize user's database
         user_db_path = os.path.join(DATABASE_DIR, f"user_{user_id}_jobs.db")
+        
+        # Ensure the databases directory exists
+        os.makedirs(DATABASE_DIR, exist_ok=True)
+        print(f"User {user_id}: Creating database at {user_db_path}")
+        
         db = JobDatabase(user_db_path)
+        print(f"User {user_id}: Database created successfully")
         
         # Get resume text
         resume_path = os.path.join(app.config['UPLOAD_FOLDER'], settings['resume_filename'])
