@@ -892,14 +892,18 @@ def run_automation_task(user_id, run_id):
                     applications_sent += 1
                     
                     # Record application in database
-                    db.record_application(
-                        job_url=job_url,
-                        job_title=job_data.get('job_title', ''),
-                        company=job_data.get('company', ''),
-                        hr_email=hr_email,
-                        relevance_score=relevance_score,
-                        status='sent'
-                    )
+                    try:
+                        app_id = db.record_application(
+                            job_url=job_url,
+                            job_title=job_data.get('job_title', ''),
+                            company=job_data.get('company', ''),
+                            hr_email=hr_email,
+                            relevance_score=relevance_score,
+                            status='sent'
+                        )
+                        print(f"User {user_id}: Application recorded with ID {app_id}")
+                    except Exception as e:
+                        print(f"User {user_id}: Error recording application: {e}")
                 else:
                     print(f"User {user_id}: Failed to send email to {hr_email}")
                     jobs_skipped += 1
@@ -913,6 +917,13 @@ def run_automation_task(user_id, run_id):
                 continue
         
         print(f"User {user_id}: Automation completed - Processed: {jobs_processed}, Applied: {applications_sent}, Skipped: {jobs_skipped}")
+        
+        # Debug: Check what's in the user database
+        try:
+            stats = db.get_application_stats()
+            print(f"User {user_id}: Database stats after completion: {stats}")
+        except Exception as e:
+            print(f"User {user_id}: Error getting database stats: {e}")
         
         # Update run status
         conn = get_user_db()
