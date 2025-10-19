@@ -25,6 +25,7 @@ from resume_handler import extract_text_from_pdf
 from ai_scorer import score_job_relevance, generate_cover_letter
 from email_finder import find_company_domain_and_emails, find_emails_with_fallback
 from email_sender import send_to_multiple_recipients
+import time
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-change-this-in-production'
@@ -614,58 +615,269 @@ def run_automation():
     return redirect(url_for('dashboard'))
 
 
+def should_apply_to_job(job_data, settings):
+    """Check if job meets quality criteria"""
+    try:
+        # Check if company is excluded
+        excluded_companies = settings.get('excluded_companies', '').lower().split(',')
+        company = job_data.get('company', '').lower().strip()
+        if company in excluded_companies:
+            return False
+        
+        # Check job age
+        max_days = settings.get('max_days_posted', 14)
+        if 'days_posted' in job_data and job_data['days_posted'] > max_days:
+            return False
+        
+        # Check applicant count
+        max_applicants = settings.get('max_applicants', 500)
+        if 'applicant_count' in job_data and job_data['applicant_count'] > max_applicants:
+            return False
+        
+        return True
+    except Exception as e:
+        print(f"Error checking job quality: {e}")
+        return False
+
+
+def score_job_with_ai(job_data, resume_text, google_api_key):
+    """Score job relevance using AI"""
+    try:
+        return score_job_relevance(job_data, resume_text, google_api_key)
+    except Exception as e:
+        print(f"Error scoring job: {e}")
+        return 0
+
+
+def find_company_domain_and_email(company_name, hunter_api_key):
+    """Find company domain and HR email using Hunter.io"""
+    try:
+        # Use the existing email finder function
+        emails = find_company_domain_and_emails(company_name, hunter_api_key)
+        if emails:
+            # Return the first email found
+            return emails[0].get('domain', ''), emails[0].get('email', '')
+        return '', ''
+    except Exception as e:
+        print(f"Error finding company email: {e}")
+        return '', ''
+
+
+def send_application_email(sender_email, sender_name, hr_email, job_title, company, cover_letter, settings):
+    """Send application email using Gmail API"""
+    try:
+        # Get Gmail credentials
+        conn = get_user_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT gmail_token FROM user_settings WHERE user_id = ?", (settings.get('user_id', 1),))
+        result = cursor.fetchone()
+        conn.close()
+        
+        if not result or not result['gmail_token']:
+            print("No Gmail token found")
+            return False
+        
+        # Load credentials
+        creds = pickle.loads(result['gmail_token'])
+        service = build('gmail', 'v1', credentials=creds)
+        
+        # Create email message
+        subject = f"Application for {job_title} at {company}"
+        
+        # Create proper email message
+        message_text = f"""To: {hr_email}
+Subject: {subject}
+Content-Type: text/html; charset=utf-8
+
+{cover_letter}"""
+        
+        # Encode message properly for Gmail API
+        import base64
+        message_bytes = message_text.encode('utf-8')
+        message_b64 = base64.urlsafe_b64encode(message_bytes).decode('utf-8')
+        
+        # Send email
+        message = service.users().messages().send(
+            userId='me',
+            body={'raw': message_b64}
+        ).execute()
+        
+        return True
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        return False
+
+
 def run_automation_task(user_id, run_id):
     """Background task to run automation"""
-    # This is a simplified version - you'd want to add more error handling
-    # and progress tracking in production
-    
-    # Get user settings
-    conn = get_user_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM user_settings WHERE user_id = ?", (user_id,))
-    settings = dict(cursor.fetchone())
-    conn.close()
-    
-    # Initialize user's database
-    user_db_path = os.path.join(DATABASE_DIR, f"user_{user_id}_jobs.db")
-    db = JobDatabase(user_db_path)
-    
-    # Get resume text
-    resume_path = os.path.join(app.config['UPLOAD_FOLDER'], settings['resume_filename'])
-    with open(resume_path, 'rb') as f:
-        resume_text = extract_text_from_pdf(f.read())
-    
-    # Scrape jobs
-    linkedin_cookie = settings.get('linkedin_cookie')
-    job_urls = scrape_job_list(settings['linkedin_search_url'], linkedin_cookie)
-    
-    jobs_processed = 0
-    applications_sent = 0
-    
-    # Process each job (simplified)
-    for job_url in job_urls[:10]:  # Limit to 10 for demo
-        if db.job_already_applied(job_url):
-            continue
+    try:
+        # Get user settings
+        conn = get_user_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM user_settings WHERE user_id = ?", (user_id,))
+        settings = dict(cursor.fetchone())
+        settings['user_id'] = user_id  # Add user_id to settings
+        conn.close()
         
-        # Process job (simplified - you'd want the full logic from main.py)
-        jobs_processed += 1
-        # ... rest of processing logic
-    
-    # Update run status
-    conn = get_user_db()
-    cursor = conn.cursor()
-    cursor.execute("""
-        UPDATE job_runs SET
-            status = 'completed',
-            jobs_processed = ?,
-            applications_sent = ?,
-            completed_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-    """, (jobs_processed, applications_sent, run_id))
-    conn.commit()
-    conn.close()
-    
-    db.close()
+        # Check if required settings are configured
+        if not settings.get('linkedin_search_url'):
+            print(f"User {user_id}: No LinkedIn search URL configured")
+            return
+        
+        if not settings.get('google_api_key'):
+            print(f"User {user_id}: No Google API key configured")
+            return
+            
+        if not settings.get('hunter_api_key'):
+            print(f"User {user_id}: No Hunter API key configured")
+            return
+        
+        # Initialize user's database
+        user_db_path = os.path.join(DATABASE_DIR, f"user_{user_id}_jobs.db")
+        db = JobDatabase(user_db_path)
+        
+        # Get resume text
+        resume_path = os.path.join(app.config['UPLOAD_FOLDER'], settings['resume_filename'])
+        if not os.path.exists(resume_path):
+            print(f"User {user_id}: Resume file not found at {resume_path}")
+            return
+            
+        with open(resume_path, 'rb') as f:
+            resume_text = extract_text_from_pdf(f.read())
+        
+        print(f"User {user_id}: Starting job scraping...")
+        
+        # Scrape jobs
+        linkedin_cookie = settings.get('linkedin_cookie')
+        job_urls = scrape_job_list(settings['linkedin_search_url'], linkedin_cookie)
+        
+        print(f"User {user_id}: Found {len(job_urls)} job URLs")
+        
+        jobs_processed = 0
+        applications_sent = 0
+        jobs_skipped = 0
+        
+        # Process each job
+        for i, job_url in enumerate(job_urls[:20]):  # Limit to 20 jobs
+            try:
+                print(f"User {user_id}: Processing job {i+1}/{min(len(job_urls), 20)}: {job_url}")
+                
+                # Check if already applied
+                if db.job_already_applied(job_url):
+                    print(f"User {user_id}: Job already applied to, skipping")
+                    jobs_skipped += 1
+                    continue
+                
+                # Scrape job details
+                job_data = scrape_job_details(job_url, linkedin_cookie)
+                if not job_data:
+                    print(f"User {user_id}: Failed to scrape job details")
+                    continue
+                
+                jobs_processed += 1
+                
+                # Apply filters
+                if not should_apply_to_job(job_data, settings):
+                    print(f"User {user_id}: Job filtered out")
+                    jobs_skipped += 1
+                    continue
+                
+                # Score job with AI
+                relevance_score = score_job_with_ai(job_data, resume_text, settings['google_api_key'])
+                print(f"User {user_id}: Job scored {relevance_score}/100")
+                
+                if relevance_score < settings.get('min_relevance_score', 60):
+                    print(f"User {user_id}: Job score too low ({relevance_score})")
+                    jobs_skipped += 1
+                    continue
+                
+                # Find company domain and email
+                company_domain, hr_email = find_company_domain_and_email(
+                    job_data.get('company', ''), 
+                    settings['hunter_api_key']
+                )
+                
+                if not hr_email:
+                    print(f"User {user_id}: No HR email found for {job_data.get('company', '')}")
+                    jobs_skipped += 1
+                    continue
+                
+                # Generate cover letter
+                cover_letter = generate_cover_letter(
+                    job_data, 
+                    resume_text, 
+                    settings['google_api_key'],
+                    settings.get('custom_prompt', ''),
+                    settings.get('sender_name', '')
+                )
+                
+                # Send email
+                if send_application_email(
+                    settings['sender_email'],
+                    settings['sender_name'],
+                    hr_email,
+                    job_data.get('job_title', ''),
+                    job_data.get('company', ''),
+                    cover_letter,
+                    settings
+                ):
+                    print(f"User {user_id}: Application sent to {hr_email}")
+                    applications_sent += 1
+                    
+                    # Record application in database
+                    db.record_application(
+                        job_url=job_url,
+                        job_title=job_data.get('job_title', ''),
+                        company=job_data.get('company', ''),
+                        hr_email=hr_email,
+                        relevance_score=relevance_score,
+                        status='sent'
+                    )
+                else:
+                    print(f"User {user_id}: Failed to send email to {hr_email}")
+                    jobs_skipped += 1
+                
+                # Small delay between applications
+                time.sleep(2)
+                
+            except Exception as e:
+                print(f"User {user_id}: Error processing job {job_url}: {str(e)}")
+                jobs_skipped += 1
+                continue
+        
+        print(f"User {user_id}: Automation completed - Processed: {jobs_processed}, Applied: {applications_sent}, Skipped: {jobs_skipped}")
+        
+        # Update run status
+        conn = get_user_db()
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE job_runs SET
+                status = 'completed',
+                jobs_processed = ?,
+                applications_sent = ?,
+                jobs_skipped = ?,
+                completed_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """, (jobs_processed, applications_sent, jobs_skipped, run_id))
+        conn.commit()
+        conn.close()
+        
+        db.close()
+        
+    except Exception as e:
+        print(f"User {user_id}: Automation failed: {str(e)}")
+        
+        # Update run status to failed
+        conn = get_user_db()
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE job_runs SET
+                status = 'failed',
+                completed_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """, (run_id,))
+        conn.commit()
+        conn.close()
 
 
 @app.route('/applications')
