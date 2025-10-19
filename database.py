@@ -241,6 +241,68 @@ class JobDatabase:
         
         self.conn.commit()
     
+    def record_application(
+        self,
+        job_url: str,
+        job_title: str,
+        company: str,
+        hr_email: str,
+        relevance_score: int,
+        status: str = 'sent'
+    ) -> int:
+        """
+        Record a job application (simplified version for Flask app)
+        
+        Args:
+            job_url: Job URL
+            job_title: Job title
+            company: Company name
+            hr_email: HR email address
+            relevance_score: AI relevance score
+            status: Application status
+            
+        Returns:
+            Application ID
+        """
+        # First, add the job if it doesn't exist
+        job_data = {
+            'job_url': job_url,
+            'company': company,
+            'title': job_title,
+            'location': '',
+            'description': '',
+            'applicant_count_num': 0,
+            'days_posted_ago': 0,
+            'salary_min': 0,
+            'salary_max': 0
+        }
+        
+        job_id = self.add_job(job_data)
+        
+        # Add application record
+        scoring_data = {
+            'score': relevance_score,
+            'reasoning': 'AI-generated application',
+            'key_matches': [],
+            'missing_skills': []
+        }
+        
+        application_id = self.add_application(
+            job_id=job_id,
+            status=status,
+            scoring_data=scoring_data,
+            cover_letter=''
+        )
+        
+        # Record email sent
+        self.add_email_sent(
+            application_id=application_id,
+            recipient_email=hr_email,
+            success=True
+        )
+        
+        return application_id
+    
     def get_application_stats(self) -> Dict[str, int]:
         """
         Get statistics about applications
