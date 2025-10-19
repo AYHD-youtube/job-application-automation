@@ -769,9 +769,15 @@ def run_automation_task(user_id, run_id):
                     continue
                 
                 # Scrape job details
-                job_data = scrape_job_details(job_url, linkedin_cookie)
-                if not job_data:
-                    print(f"User {user_id}: Failed to scrape job details")
+                try:
+                    job_data = scrape_job_details(job_url, linkedin_cookie)
+                    if not job_data:
+                        print(f"User {user_id}: Failed to scrape job details")
+                        jobs_skipped += 1
+                        continue
+                except Exception as e:
+                    print(f"User {user_id}: Error scraping job details from {job_url}: {e}")
+                    jobs_skipped += 1
                     continue
                 
                 jobs_processed += 1
@@ -783,7 +789,14 @@ def run_automation_task(user_id, run_id):
                     continue
                 
                 # Score job with AI
-                relevance_score = score_job_with_ai(job_data, resume_text, settings['google_api_key'])
+                score_result = score_job_with_ai(job_data, resume_text, settings['google_api_key'])
+                
+                # Handle both dict and int return types
+                if isinstance(score_result, dict):
+                    relevance_score = score_result.get('score', 0)
+                else:
+                    relevance_score = score_result
+                
                 print(f"User {user_id}: Job scored {relevance_score}/100")
                 
                 if relevance_score < settings.get('min_relevance_score', 60):
