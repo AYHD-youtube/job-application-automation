@@ -273,7 +273,10 @@ def settings():
     cursor = conn.cursor()
     
     if request.method == 'POST':
-        # Debug: Print form data
+        # Debug: Print ALL form data
+        print(f"DEBUG: User {current_user.id} ALL form data: {dict(request.form)}")
+        
+        # Debug: Print specific fields
         form_data = {
             'google_api_key': request.form.get('google_api_key'),
             'hunter_api_key': request.form.get('hunter_api_key'),
@@ -283,7 +286,7 @@ def settings():
             'linkedin_cookie': request.form.get('linkedin_cookie', ''),
             'excluded_companies': request.form.get('excluded_companies', ''),
         }
-        print(f"DEBUG: User {current_user.id} form data: {form_data}")
+        print(f"DEBUG: User {current_user.id} processed form data: {form_data}")
         
         # Ensure user_settings row exists (create if doesn't)
         cursor.execute("SELECT id FROM user_settings WHERE user_id = ?", (current_user.id,))
