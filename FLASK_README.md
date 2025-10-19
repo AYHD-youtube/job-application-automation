@@ -65,7 +65,21 @@ The app will be available at: **http://localhost:5000**
 3. Fill in your details
 4. Login with your credentials
 
-### 4. Configure Settings
+### 4. Set Up Gmail API (One-Time Setup)
+
+**⚠️ Important:** Before using the app, you need to set up Gmail API to send emails from your account!
+
+1. Follow the complete guide: **`GMAIL_SETUP_GUIDE.md`**
+2. Quick steps:
+   - Create Google Cloud project
+   - Enable Gmail API
+   - Create OAuth credentials
+   - Download `credentials.json`
+   - Run `python auth_bootstrap.py`
+
+**Each user needs their own Gmail setup!**
+
+### 5. Configure Settings in Web App
 
 1. Go to Settings page
 2. Upload your resume (PDF)
@@ -79,7 +93,7 @@ The app will be available at: **http://localhost:5000**
 7. Adjust filters and thresholds
 8. Save settings
 
-### 5. Start Automation
+### 6. Start Automation
 
 1. Go to Dashboard
 2. Click "Start Automation"

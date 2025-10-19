@@ -51,23 +51,26 @@ venv\Scripts\activate  # On Windows
 pip install -r requirements.txt
 ```
 
-### 2. Set Up Google OAuth
+### 2. Set Up Gmail API (Required for Each User)
 
+**⚠️ Important:** Each person needs their own Gmail API credentials to send emails from their account!
+
+**Quick Setup:**
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project
-3. Enable these APIs:
-   - Gmail API
-   - Google Drive API (optional, for resume download)
-4. Create OAuth 2.0 credentials:
-   - Go to "Credentials" → "Create Credentials" → "OAuth 2.0 Client ID"
-   - Choose "Desktop app"
-   - Download as `credentials.json`
-5. Place `credentials.json` in this directory
-6. Run authentication:
+2. Create a new project (e.g., "Job Automation")
+3. Enable **Gmail API**
+4. Configure **OAuth consent screen** (External, add yourself as test user)
+5. Create **OAuth 2.0 credentials** (Desktop app type)
+6. Download as `credentials.json` and place in project folder
+7. Run authentication:
    ```bash
    python auth_bootstrap.py
    ```
-   This will open a browser for authorization and create `token.json`
+   This opens a browser for authorization and creates `token.json`
+
+**📖 Detailed Guide:** See `GMAIL_SETUP_GUIDE.md` for complete step-by-step instructions with screenshots descriptions and troubleshooting.
+
+**For Your Friends:** Each user must do this setup with their own Google account to send emails from their Gmail!
 
 ### 3. Get API Keys
 
@@ -122,7 +125,9 @@ The app will be available at: **http://localhost:5000**
 
 ## 📖 Documentation
 
-- **FLASK_README.md** - Complete web app documentation
+- **README.md** - This file (main documentation)
+- **GMAIL_SETUP_GUIDE.md** - Complete Gmail API setup guide (step-by-step)
+- **FLASK_README.md** - Web app documentation and features
 - **LINKEDIN_COOKIE_GUIDE.md** - How to get LinkedIn cookie for rate limit bypass
 
 ## 🎯 How It Works
