@@ -39,43 +39,6 @@
                     
                     <hr>
                     
-                    <!-- Gmail OAuth Setup -->
-                    <h5 class="mb-3"><i class="bi bi-google"></i> Gmail Setup (Required)</h5>
-                    
-                    <div class="alert alert-info">
-                        <strong>📧 Gmail Authorization:</strong> Upload your Google OAuth credentials and authorize to send emails from your Gmail account.
-                        <br><small>See <a href="https://github.com/AYHD-youtube/job-application-automation/blob/main/GMAIL_SETUP_GUIDE.md" target="_blank">Gmail Setup Guide</a> for how to get credentials.json</small>
-                    </div>
-                    
-                    {% if settings.gmail_authenticated %}
-                    <div class="alert alert-success">
-                        <i class="bi bi-check-circle"></i> Gmail is authorized! You can send emails.
-                        <a href="{{ url_for('revoke_gmail') }}" class="btn btn-sm btn-outline-danger float-end">Revoke Access</a>
-                    </div>
-                    {% else %}
-                    <div class="mb-3">
-                        <label class="form-label">Step 1: Upload credentials.json</label>
-                        <form action="{{ url_for('upload_gmail_credentials') }}" method="POST" enctype="multipart/form-data" class="d-inline">
-                            <div class="input-group">
-                                <input type="file" class="form-control" name="credentials" accept=".json" required>
-                                <button type="submit" class="btn btn-primary">Upload</button>
-                            </div>
-                            <small class="text-muted">Download from Google Cloud Console → Credentials → OAuth 2.0 Client</small>
-                        </form>
-                    </div>
-                    
-                    {% if settings.gmail_credentials %}
-                    <div class="mb-3">
-                        <label class="form-label">Step 2: Authorize Gmail</label>
-                        <br>
-                        <a href="{{ url_for('authorize_gmail') }}" class="btn btn-success">
-                            <i class="bi bi-shield-check"></i> Authorize Gmail
-                        </a>
-                        <small class="text-muted d-block mt-2">This will open Google's authorization page</small>
-                    </div>
-                    {% endif %}
-                    {% endif %}
-                    
                     <hr>
                     
                     <!-- Email Settings -->
@@ -163,6 +126,48 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+        
+        <!-- Gmail OAuth Setup Card -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-google"></i> Gmail Setup (Required)</h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="alert alert-info">
+                    <strong>📧 Gmail Authorization:</strong> Upload your Google OAuth credentials and authorize to send emails from your Gmail account.
+                    <br><small>See <a href="https://github.com/AYHD-youtube/job-application-automation/blob/main/GMAIL_SETUP_GUIDE.md" target="_blank">Gmail Setup Guide</a> for how to get credentials.json</small>
+                </div>
+                
+                {% if settings.gmail_authenticated %}
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle"></i> Gmail is authorized! You can send emails.
+                    <a href="{{ url_for('revoke_gmail') }}" class="btn btn-sm btn-outline-danger float-end">Revoke Access</a>
+                </div>
+                {% else %}
+                <div class="mb-3">
+                    <label class="form-label">Step 1: Upload credentials.json</label>
+                    <form action="{{ url_for('upload_gmail_credentials') }}" method="POST" enctype="multipart/form-data" class="d-inline">
+                        <div class="input-group">
+                            <input type="file" class="form-control" name="credentials" accept=".json" required>
+                            <button type="submit" class="btn btn-primary">Upload</button>
+                        </div>
+                        <small class="text-muted">Download from Google Cloud Console → Credentials → OAuth 2.0 Client</small>
+                    </form>
+                </div>
+                
+                {% if settings.gmail_credentials %}
+                <div class="mb-3">
+                    <label class="form-label">Step 2: Authorize Gmail</label>
+                    <br>
+                    <a href="{{ url_for('authorize_gmail') }}" class="btn btn-success">
+                        <i class="bi bi-shield-check"></i> Authorize Gmail
+                    </a>
+                    <small class="text-muted d-block mt-2">This will open Google's authorization page</small>
+                </div>
+                {% endif %}
+                {% endif %}
             </div>
         </div>
         
