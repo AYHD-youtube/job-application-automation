@@ -149,6 +149,16 @@ def init_user_db():
         else:
             print(f"Error adding custom_cover_letter_prompt column: {e}")
     
+    # Migration: Add attach_resume column if it doesn't exist
+    try:
+        cursor.execute("ALTER TABLE user_settings ADD COLUMN attach_resume INTEGER DEFAULT 1")
+        print("Added attach_resume column to user_settings table")
+    except sqlite3.OperationalError as e:
+        if "duplicate column name" in str(e):
+            print("attach_resume column already exists")
+        else:
+            print(f"Error adding attach_resume column: {e}")
+    
     conn.commit()
     conn.close()
 
@@ -343,6 +353,7 @@ def settings():
                 excluded_companies = ?,
                 custom_prompt = ?,
                 custom_cover_letter_prompt = ?,
+                attach_resume = ?,
                 updated_at = CURRENT_TIMESTAMP
             WHERE user_id = ?
         """, (
@@ -358,6 +369,7 @@ def settings():
             request.form.get('excluded_companies', ''),
             request.form.get('custom_prompt', ''),
             request.form.get('custom_cover_letter_prompt', ''),
+            1 if request.form.get('attach_resume') else 0,
             current_user.id
         ))
         
@@ -799,15 +811,8 @@ def send_application_email(sender_email, sender_name, hr_email, job_title, compa
         
         service = build('gmail', 'v1', credentials=creds)
         
-        # Get resume file path
-        resume_path = os.path.join(app.config['UPLOAD_FOLDER'], settings['resume_filename'])
-        if not os.path.exists(resume_path):
-            print(f"Resume file not found: {resume_path}")
-            return False
-        
-        # Read resume file
-        with open(resume_path, 'rb') as f:
-            resume_data = f.read()
+        # Check if resume should be attached
+        attach_resume = settings.get('attach_resume', 1)  # Default to True for backward compatibility
         
         # Create multipart email with attachment
         import email.mime.multipart
@@ -824,16 +829,28 @@ def send_application_email(sender_email, sender_name, hr_email, job_title, compa
         html_part = email.mime.text.MIMEText(cover_letter, 'html')
         msg.attach(html_part)
         
-        # Add resume as attachment
-        resume_attachment = email.mime.base.MIMEBase('application', 'pdf')
-        resume_attachment.set_payload(resume_data)
-        import email.encoders
-        email.encoders.encode_base64(resume_attachment)
-        resume_attachment.add_header(
-            'Content-Disposition',
-            f'attachment; filename="{settings["resume_filename"]}"'
-        )
-        msg.attach(resume_attachment)
+        # Add resume as attachment only if enabled
+        if attach_resume:
+            # Get resume file path
+            resume_path = os.path.join(app.config['UPLOAD_FOLDER'], settings['resume_filename'])
+            if not os.path.exists(resume_path):
+                print(f"Resume file not found: {resume_path}")
+                return False
+            
+            # Read resume file
+            with open(resume_path, 'rb') as f:
+                resume_data = f.read()
+            
+            # Add resume as attachment
+            resume_attachment = email.mime.base.MIMEBase('application', 'pdf')
+            resume_attachment.set_payload(resume_data)
+            import email.encoders
+            email.encoders.encode_base64(resume_attachment)
+            resume_attachment.add_header(
+                'Content-Disposition',
+                f'attachment; filename="{settings["resume_filename"]}"'
+            )
+            msg.attach(resume_attachment)
         
         # Encode message
         import base64
@@ -845,7 +862,10 @@ def send_application_email(sender_email, sender_name, hr_email, job_title, compa
             body={'raw': raw_message}
         ).execute()
         
-        print(f"  Email sent successfully with resume attachment: {message.get('id')}")
+        if attach_resume:
+            print(f"  Email sent successfully with resume attachment: {message.get('id')}")
+        else:
+            print(f"  Email sent successfully (cover letter only): {message.get('id')}")
         return True
     except Exception as e:
         print(f"Error sending email: {e}")
@@ -1001,7 +1021,8 @@ def run_automation_task(user_id, run_id):
                     scoring_data,
                     settings['google_api_key'],
                     resume_url,
-                    settings.get('custom_cover_letter_prompt')
+                    settings.get('custom_cover_letter_prompt'),
+                    bool(settings.get('attach_resume', 1))
                 )
                 
                 # Send email

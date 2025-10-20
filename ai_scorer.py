@@ -116,7 +116,8 @@ def generate_cover_letter(
     scoring_data: Dict[str, Any],
     api_key: str,
     resume_url: str,
-    custom_prompt: str = None
+    custom_prompt: str = None,
+    attach_resume: bool = True
 ) -> str:
     """
     Generate personalized cover letter using AI
@@ -128,6 +129,7 @@ def generate_cover_letter(
         api_key: Google API key for Gemini
         resume_url: URL to resume
         custom_prompt: Custom prompt template (optional)
+        attach_resume: Whether resume will be attached to email (default: True)
         
     Returns:
         Generated cover letter in HTML format
@@ -199,10 +201,15 @@ Description: {job_data.get('Description', 'N/A')}
             paragraphs = cover_letter.split('\n\n')
             cover_letter = '\n'.join(f'<p>{p.strip()}</p>' for p in paragraphs if p.strip())
         
-        # Add professional footer
-        footer = f"""
+        # Add professional footer based on resume attachment setting
+        if attach_resume:
+            footer = f"""
 <p><br></p>
 <p><em>I have attached my resume for your review. I look forward to discussing this opportunity further.</em></p>"""
+        else:
+            footer = f"""
+<p><br></p>
+<p><em>I look forward to discussing this opportunity further.</em></p>"""
         
         cover_letter = cover_letter + footer
         

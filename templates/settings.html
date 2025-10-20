@@ -120,6 +120,17 @@
                         <small class="text-muted">Customize how AI generates cover letters. Use {job_title}, {company}, {description}, {resume}, {score}, {key_matches}, {missing_skills} as placeholders.</small>
                     </div>
                     
+                    <div class="mb-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="attach_resume" name="attach_resume" 
+                                   value="1" {{ 'checked' if settings.attach_resume else '' }}>
+                            <label class="form-check-label" for="attach_resume">
+                                Attach Resume to Emails
+                            </label>
+                        </div>
+                        <small class="text-muted">When enabled, your resume will be attached as a PDF to each application email. When disabled, only the cover letter will be sent.</small>
+                    </div>
+                    
                     <div class="d-grid">
                         <button type="submit" class="btn btn-primary btn-lg">
                             <i class="bi bi-save"></i> Save Settings
