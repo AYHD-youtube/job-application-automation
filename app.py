@@ -108,6 +108,7 @@ def init_user_db():
             min_relevance_score INTEGER DEFAULT 60,
             excluded_companies TEXT,
             custom_prompt TEXT,
+            custom_cover_letter_prompt TEXT,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id)
         )
@@ -310,6 +311,7 @@ def settings():
                 min_relevance_score = ?,
                 excluded_companies = ?,
                 custom_prompt = ?,
+                custom_cover_letter_prompt = ?,
                 updated_at = CURRENT_TIMESTAMP
             WHERE user_id = ?
         """, (
@@ -324,6 +326,7 @@ def settings():
             request.form.get('min_relevance_score', 60),
             request.form.get('excluded_companies', ''),
             request.form.get('custom_prompt', ''),
+            request.form.get('custom_cover_letter_prompt', ''),
             current_user.id
         ))
         
@@ -900,7 +903,8 @@ def run_automation_task(user_id, run_id):
                     resume_text, 
                     scoring_data,
                     settings['google_api_key'],
-                    resume_url
+                    resume_url,
+                    settings.get('custom_cover_letter_prompt')
                 )
                 
                 # Send email

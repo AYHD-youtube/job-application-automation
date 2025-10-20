@@ -115,7 +115,8 @@ def generate_cover_letter(
     resume_text: str,
     scoring_data: Dict[str, Any],
     api_key: str,
-    resume_url: str
+    resume_url: str,
+    custom_prompt: str = None
 ) -> str:
     """
     Generate personalized cover letter using AI
@@ -126,6 +127,7 @@ def generate_cover_letter(
         scoring_data: AI scoring results
         api_key: Google API key for Gemini
         resume_url: URL to resume
+        custom_prompt: Custom prompt template (optional)
         
     Returns:
         Generated cover letter in HTML format
@@ -135,7 +137,23 @@ def generate_cover_letter(
     key_matches = ', '.join(scoring_data.get('key_matches', []))
     missing_skills = ', '.join(scoring_data.get('missing_skills', []))
     
-    prompt = f"""Write a compelling, personalized cover letter that emphasizes the candidate's matching skills.
+    # Use custom prompt if provided, otherwise use default
+    if custom_prompt and custom_prompt.strip():
+        # Replace placeholders in custom prompt
+        prompt = custom_prompt.format(
+            job_title=job_data.get('Title', 'N/A'),
+            company=job_data.get('Company', 'N/A'),
+            description=job_data.get('Description', 'N/A'),
+            resume=resume_text,
+            score=scoring_data.get('score', 0),
+            key_matches=key_matches,
+            missing_skills=missing_skills,
+            reasoning=scoring_data.get('reasoning', ''),
+            location=job_data.get('Location', 'N/A')
+        )
+    else:
+        # Default prompt
+        prompt = f"""Write a compelling, personalized cover letter that emphasizes the candidate's matching skills.
 
 **SCORING INSIGHTS:**
 Relevance Score: {scoring_data.get('score', 0)}/100

@@ -113,6 +113,13 @@
                         <small class="text-muted">Customize how AI scores job relevance. Use {job_title}, {company}, {description}, {resume} as placeholders.</small>
                     </div>
                     
+                    <div class="mb-4">
+                        <label for="custom_cover_letter_prompt" class="form-label">Custom Cover Letter Prompt</label>
+                        <textarea class="form-control" id="custom_cover_letter_prompt" name="custom_cover_letter_prompt" 
+                                  rows="5" placeholder="Leave empty to use default prompt">{{ settings.custom_cover_letter_prompt or '' }}</textarea>
+                        <small class="text-muted">Customize how AI generates cover letters. Use {job_title}, {company}, {description}, {resume}, {score}, {key_matches}, {missing_skills} as placeholders.</small>
+                    </div>
+                    
                     <div class="d-grid">
                         <button type="submit" class="btn btn-primary btn-lg">
                             <i class="bi bi-save"></i> Save Settings
