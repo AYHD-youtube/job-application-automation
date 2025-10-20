@@ -173,15 +173,15 @@ Description: {job_data.get('Description', 'N/A')}
 {resume_text}
 
 **INSTRUCTIONS:**
-1. Start with ONLY ONE greeting: "Dear {job_data.get('Company', 'Hiring Team')} Hiring Team," (use the actual company name from job_data)
-2. Write 3-4 paragraphs emphasizing the key matching skills ({key_matches})
+1. Start with ONLY ONE greeting: "Dear {job_data.get('Company', 'Hiring Team')}," (use the actual company name from job_data)
+2. Write 1 - 2 paragraphs emphasizing the key matching skills ({key_matches})
 3. Provide specific examples of achievements
 4. If any missing skills are trainable, express enthusiasm to learn
 5. Close with "Regards," followed by the candidate's name
 6. DO NOT add any resume links or job URLs in the body - they will be added automatically
 
 **FORMAT:**
-- Start with single greeting line: "Dear [ACTUAL_COMPANY_NAME] Hiring Team,"
+- Start with single greeting line: "Dear [ACTUAL_COMPANY_NAME],"
 - 1-2 body paragraphs (150 - 200 words)
 - End with "Regards," and candidate name
 - Professional but personable tone
