@@ -180,7 +180,7 @@ Description: {job_data.get('Description', 'N/A')}
 
 **FORMAT:**
 - Start with single greeting line: "Dear [ACTUAL_COMPANY_NAME] Hiring Team,"
-- 3-4 body paragraphs (250-300 words)
+- 1-2 body paragraphs (150 - 200 words)
 - End with "Regards," and candidate name
 - Professional but personable tone
 - No placeholders or brackets
