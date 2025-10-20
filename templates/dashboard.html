@@ -62,9 +62,15 @@
                                 <tr>
                                     <td>{{ run.started_at }}</td>
                                     <td>
-                                        <span class="badge bg-{{ 'success' if run.status == 'completed' else 'warning' }}">
-                                            {{ run.status }}
-                                        </span>
+                                        {% if run.status == 'completed' %}
+                                            <span class="badge bg-success">{{ run.status }}</span>
+                                        {% elif run.status == 'stopped' %}
+                                            <span class="badge bg-warning">{{ run.status }}</span>
+                                        {% elif run.status == 'failed' %}
+                                            <span class="badge bg-danger">{{ run.status }}</span>
+                                        {% else %}
+                                            <span class="badge bg-info">{{ run.status }}</span>
+                                        {% endif %}
                                     </td>
                                     <td>{{ run.jobs_processed }}</td>
                                     <td>{{ run.applications_sent }}</td>
@@ -86,7 +92,18 @@
                 <h4 class="mb-0"><i class="bi bi-play-circle"></i> Quick Actions</h4>
             </div>
             <div class="card-body">
-                {% if settings and settings.resume_filename and settings.google_api_key %}
+                {% if current_run %}
+                    <div class="alert alert-info mb-3">
+                        <i class="bi bi-clock"></i> 
+                        <strong>Automation Running</strong><br>
+                        <small>Started: {{ current_run.started_at }}</small>
+                    </div>
+                    <form method="POST" action="{{ url_for('stop_automation') }}">
+                        <button type="submit" class="btn btn-danger w-100 mb-3">
+                            <i class="bi bi-stop-circle"></i> Stop Automation
+                        </button>
+                    </form>
+                {% elif settings and settings.resume_filename and settings.google_api_key %}
                     <form method="POST" action="{{ url_for('run_automation') }}">
                         <button type="submit" class="btn btn-success w-100 mb-3">
                             <i class="bi bi-rocket"></i> Start Automation
@@ -130,5 +147,16 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{% if current_run %}
+<script>
+    // Auto-refresh page every 10 seconds when automation is running
+    setTimeout(function() {
+        window.location.reload();
+    }, 10000);
+</script>
+{% endif %}
 {% endblock %}
 
