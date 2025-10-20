@@ -760,11 +760,11 @@ def score_job_with_ai(job_data, resume_text, google_api_key):
         return 0
 
 
-def find_company_domain_and_email(company_name, hunter_api_key):
-    """Find company domain and HR email using Hunter.io"""
+def find_company_domain_and_email(company_name, hunter_api_key, google_api_key=None):
+    """Find company domain and HR email using comprehensive strategies"""
     try:
-        # Use the existing email finder function
-        result = find_company_domain_and_emails(company_name, hunter_api_key)
+        # Use the enhanced email finder function
+        result = find_company_domain_and_emails(company_name, hunter_api_key, google_api_key=google_api_key)
         
         if result and result.get('emails'):
             # Return the domain and first email found
@@ -995,7 +995,8 @@ def run_automation_task(user_id, run_id):
                 # Find company domain and email
                 company_domain, hr_email = find_company_domain_and_email(
                     job_data.get('company', ''), 
-                    settings['hunter_api_key']
+                    settings['hunter_api_key'],
+                    settings.get('google_api_key')
                 )
                 
                 if not hr_email:
