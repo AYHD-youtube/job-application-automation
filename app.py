@@ -276,10 +276,10 @@ def dashboard():
     """, (current_user.id,))
     recent_runs = cursor.fetchall()
     
-    # Check if automation is currently running
+    # Check if automation is currently running (only recent ones, not stuck ones)
     cursor.execute("""
         SELECT id, started_at FROM job_runs 
-        WHERE user_id = ? AND status = 'running'
+        WHERE user_id = ? AND status = 'running' AND started_at > datetime('now', '-10 minutes')
         ORDER BY started_at DESC 
         LIMIT 1
     """, (current_user.id,))
@@ -639,17 +639,24 @@ def revoke_gmail():
 @login_required
 def run_automation():
     """Start automation run"""
-    # Check if there's already a running automation
+    # Check if there's already a running automation (only recent ones)
     conn = get_user_db()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT id FROM job_runs WHERE user_id = ? AND status = 'running'",
+        "SELECT id FROM job_runs WHERE user_id = ? AND status = 'running' AND started_at > datetime('now', '-10 minutes')",
         (current_user.id,)
     )
     if cursor.fetchone():
         conn.close()
         flash('Automation is already running!', 'warning')
         return redirect(url_for('dashboard'))
+    
+    # Clean up any stuck "running" status runs before starting new one
+    cursor.execute(
+        "UPDATE job_runs SET status = 'failed', completed_at = CURRENT_TIMESTAMP WHERE user_id = ? AND status = 'running'",
+        (current_user.id,)
+    )
+    conn.commit()
     
     # Create job run record
     cursor.execute(
@@ -679,9 +686,9 @@ def stop_automation():
     conn = get_user_db()
     cursor = conn.cursor()
     
-    # Find the current running automation
+    # Find the current running automation (only recent ones, not stuck ones)
     cursor.execute(
-        "SELECT id FROM job_runs WHERE user_id = ? AND status = 'running'",
+        "SELECT id FROM job_runs WHERE user_id = ? AND status = 'running' AND started_at > datetime('now', '-10 minutes')",
         (current_user.id,)
     )
     run = cursor.fetchone()
@@ -695,7 +702,13 @@ def stop_automation():
         conn.commit()
         flash('Stop request sent. Automation will stop after current job.', 'info')
     else:
-        flash('No running automation found.', 'warning')
+        # Clean up any stuck "running" status runs
+        cursor.execute(
+            "UPDATE job_runs SET status = 'failed', completed_at = CURRENT_TIMESTAMP WHERE user_id = ? AND status = 'running'",
+            (current_user.id,)
+        )
+        conn.commit()
+        flash('No active automation found. Any stuck runs have been cleaned up.', 'warning')
     
     conn.close()
     return redirect(url_for('dashboard'))
