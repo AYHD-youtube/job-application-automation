@@ -31,7 +31,9 @@ def scrape_job_list(search_url: str, linkedin_cookie: str = None) -> List[str]:
     cookies = {}
     if linkedin_cookie:
         cookies['li_at'] = linkedin_cookie
-        print("  Using authenticated LinkedIn session")
+        print(f"  Using authenticated LinkedIn session (cookie length: {len(linkedin_cookie)})")
+    else:
+        print("  No LinkedIn cookie provided - using anonymous session")
     
     try:
         response = requests.get(search_url, headers=headers, cookies=cookies, timeout=30)
@@ -42,16 +44,85 @@ def scrape_job_list(search_url: str, linkedin_cookie: str = None) -> List[str]:
         # Extract job URLs from search results
         job_links = []
         
-        # Look for job cards with href attributes
-        job_cards = soup.select('ul.jobs-search__results-list li div a[class*="base-card"]')
+        # Debug: Check if we got a valid response
+        print(f"  Response status: {response.status_code}")
+        print(f"  Response length: {len(response.text)} characters")
+        print(f"  Final URL: {response.url}")
         
-        for card in job_cards:
-            href = card.get('href')
-            if href:
-                # Clean up the URL
-                if '?' in href:
-                    href = href.split('?')[0]
-                job_links.append(href)
+        # Check if we got redirected to login or blocked
+        if 'login' in response.url.lower() or 'challenge' in response.url.lower():
+            print("  WARNING: Redirected to login/challenge page - LinkedIn cookie may be invalid")
+        elif response.status_code == 429:
+            print("  WARNING: Rate limited by LinkedIn")
+        elif len(response.text) < 1000:
+            print("  WARNING: Very short response - may be blocked or invalid")
+        
+        # Try multiple selectors for job cards (LinkedIn changes their structure frequently)
+        selectors_to_try = [
+            'ul.jobs-search__results-list li div a[class*="base-card"]',  # Old selector
+            'ul.jobs-search__results-list li a[href*="/jobs/view/"]',     # More specific
+            'div[data-job-id] a[href*="/jobs/view/"]',                    # Alternative
+            'a[href*="/jobs/view/"]',                                     # Very broad
+            'ul.jobs-search__results-list li a',                         # Even broader
+            'div[class*="job-card"] a',                                   # Another variant
+            'div[class*="job"] a[href*="/jobs/"]'                        # Generic job links
+        ]
+        
+        for selector in selectors_to_try:
+            job_cards = soup.select(selector)
+            print(f"  Trying selector '{selector}': found {len(job_cards)} elements")
+            
+            if job_cards:
+                for card in job_cards:
+                    href = card.get('href')
+                    if href and '/jobs/view/' in href:
+                        # Clean up the URL
+                        if '?' in href:
+                            href = href.split('?')[0]
+                        if href not in job_links:  # Avoid duplicates
+                            job_links.append(href)
+                
+                if job_links:
+                    print(f"  Found {len(job_links)} job URLs with selector: {selector}")
+                    break
+        
+        # If still no results, try to find any links containing job IDs
+        if not job_links:
+            all_links = soup.find_all('a', href=True)
+            print(f"  Total links found on page: {len(all_links)}")
+            
+            for link in all_links:
+                href = link.get('href')
+                if href and '/jobs/view/' in href:
+                    if '?' in href:
+                        href = href.split('?')[0]
+                    if href not in job_links:
+                        job_links.append(href)
+            
+            print(f"  Found {len(job_links)} job URLs by scanning all links")
+        
+        # If still no results, try to extract from JavaScript/JSON data
+        if not job_links:
+            print("  Trying to extract job URLs from JavaScript/JSON data...")
+            # Look for JSON data in script tags
+            script_tags = soup.find_all('script', type='application/ld+json')
+            for script in script_tags:
+                try:
+                    import json
+                    data = json.loads(script.string)
+                    if isinstance(data, dict) and 'itemListElement' in data:
+                        for item in data['itemListElement']:
+                            if 'url' in item:
+                                url = item['url']
+                                if '/jobs/view/' in url:
+                                    if '?' in url:
+                                        url = url.split('?')[0]
+                                    if url not in job_links:
+                                        job_links.append(url)
+                except:
+                    continue
+            
+            print(f"  Found {len(job_links)} job URLs from JSON data")
         
         return job_links
         
