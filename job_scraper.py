@@ -57,6 +57,14 @@ def scrape_job_list(search_url: str, linkedin_cookie: str = None) -> List[str]:
         elif len(response.text) < 1000:
             print("  WARNING: Very short response - may be blocked or invalid")
         
+        # Check if this is a JavaScript-heavy page (authenticated session)
+        if linkedin_cookie and len(response.text) > 1000000:  # Large response suggests JS app
+            print("  Detected JavaScript-heavy page (authenticated session) - trying different approach")
+            job_links = extract_jobs_from_js_app(response.text, search_url)
+            if job_links:
+                print(f"  Found {len(job_links)} job URLs from JavaScript app")
+                return job_links
+        
         # Try multiple selectors for job cards (LinkedIn changes their structure frequently)
         selectors_to_try = [
             'ul.jobs-search__results-list li div a[class*="base-card"]',  # Old selector
@@ -104,24 +112,7 @@ def scrape_job_list(search_url: str, linkedin_cookie: str = None) -> List[str]:
         # If still no results, try to extract from JavaScript/JSON data
         if not job_links:
             print("  Trying to extract job URLs from JavaScript/JSON data...")
-            # Look for JSON data in script tags
-            script_tags = soup.find_all('script', type='application/ld+json')
-            for script in script_tags:
-                try:
-                    import json
-                    data = json.loads(script.string)
-                    if isinstance(data, dict) and 'itemListElement' in data:
-                        for item in data['itemListElement']:
-                            if 'url' in item:
-                                url = item['url']
-                                if '/jobs/view/' in url:
-                                    if '?' in url:
-                                        url = url.split('?')[0]
-                                    if url not in job_links:
-                                        job_links.append(url)
-                except:
-                    continue
-            
+            job_links = extract_jobs_from_json_data(response.text)
             print(f"  Found {len(job_links)} job URLs from JSON data")
         
         return job_links
@@ -129,6 +120,133 @@ def scrape_job_list(search_url: str, linkedin_cookie: str = None) -> List[str]:
     except Exception as e:
         print(f"Error scraping job list: {e}")
         return []
+
+
+def extract_jobs_from_js_app(html_content: str, search_url: str) -> List[str]:
+    """
+    Extract job URLs from LinkedIn's JavaScript-heavy authenticated pages
+    
+    Args:
+        html_content: HTML content from the page
+        search_url: Original search URL
+        
+    Returns:
+        List of job URLs
+    """
+    import re
+    import json
+    
+    job_links = []
+    
+    # Look for job data in various JavaScript patterns
+    patterns_to_try = [
+        # Pattern 1: Look for job IDs in data attributes
+        r'data-job-id="(\d+)"',
+        r'data-entity-urn=".*?jobPosting:(\d+)"',
+        r'"jobPosting":"(\d+)"',
+        r'"jobPostingId":"(\d+)"',
+        r'jobPosting:(\d+)',
+        r'/jobs/view/(\d+)',
+        r'jobId["\']?\s*:\s*["\']?(\d+)',
+        r'jobId["\']?\s*:\s*(\d+)',
+    ]
+    
+    for pattern in patterns_to_try:
+        matches = re.findall(pattern, html_content)
+        for job_id in matches:
+            if job_id.isdigit():
+                job_url = f"https://www.linkedin.com/jobs/view/{job_id}"
+                if job_url not in job_links:
+                    job_links.append(job_url)
+    
+    # Pattern 2: Look for JSON data in script tags
+    script_pattern = r'<script[^>]*>(.*?)</script>'
+    scripts = re.findall(script_pattern, html_content, re.DOTALL)
+    
+    for script in scripts:
+        # Look for job-related JSON data
+        if 'jobPosting' in script or 'job' in script.lower():
+            try:
+                # Try to find JSON objects
+                json_matches = re.findall(r'\{[^{}]*"jobPosting"[^{}]*\}', script)
+                for json_str in json_matches:
+                    try:
+                        data = json.loads(json_str)
+                        if 'jobPosting' in data:
+                            job_id = str(data['jobPosting'])
+                            if job_id.isdigit():
+                                job_url = f"https://www.linkedin.com/jobs/view/{job_id}"
+                                if job_url not in job_links:
+                                    job_links.append(job_url)
+                    except:
+                        continue
+            except:
+                continue
+    
+    # Pattern 3: Look for job URLs in the HTML content directly
+    url_pattern = r'https://www\.linkedin\.com/jobs/view/\d+'
+    url_matches = re.findall(url_pattern, html_content)
+    for url in url_matches:
+        if '?' in url:
+            url = url.split('?')[0]
+        if url not in job_links:
+            job_links.append(url)
+    
+    print(f"  Extracted {len(job_links)} job URLs from JavaScript app")
+    return job_links
+
+
+def extract_jobs_from_json_data(html_content: str) -> List[str]:
+    """
+    Extract job URLs from JSON-LD and other structured data
+    
+    Args:
+        html_content: HTML content from the page
+        
+    Returns:
+        List of job URLs
+    """
+    import re
+    import json
+    
+    job_links = []
+    
+    # Look for JSON-LD structured data
+    json_ld_pattern = r'<script[^>]*type=["\']application/ld\+json["\'][^>]*>(.*?)</script>'
+    json_ld_scripts = re.findall(json_ld_pattern, html_content, re.DOTALL)
+    
+    for script in json_ld_scripts:
+        try:
+            data = json.loads(script)
+            if isinstance(data, dict) and 'itemListElement' in data:
+                for item in data['itemListElement']:
+                    if 'url' in item:
+                        url = item['url']
+                        if '/jobs/view/' in url:
+                            if '?' in url:
+                                url = url.split('?')[0]
+                            if url not in job_links:
+                                job_links.append(url)
+        except:
+            continue
+    
+    # Look for other JSON data patterns
+    json_patterns = [
+        r'"url"\s*:\s*"([^"]*jobs/view/[^"]*)"',
+        r'"@id"\s*:\s*"([^"]*jobs/view/[^"]*)"',
+        r'"jobUrl"\s*:\s*"([^"]*jobs/view/[^"]*)"',
+    ]
+    
+    for pattern in json_patterns:
+        matches = re.findall(pattern, html_content)
+        for url in matches:
+            if '/jobs/view/' in url:
+                if '?' in url:
+                    url = url.split('?')[0]
+                if url not in job_links:
+                    job_links.append(url)
+    
+    return job_links
 
 
 def scrape_job_details(job_url: str, linkedin_cookie: str = None) -> Dict[str, Any]:
