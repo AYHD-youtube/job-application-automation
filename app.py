@@ -8,8 +8,8 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-import os
 import sqlite3
+import os
 import json
 from datetime import datetime
 import threading
@@ -128,6 +128,26 @@ def init_user_db():
             FOREIGN KEY (user_id) REFERENCES users(id)
         )
     """)
+    
+    # Migration: Add stop_requested column if it doesn't exist
+    try:
+        cursor.execute("ALTER TABLE job_runs ADD COLUMN stop_requested INTEGER DEFAULT 0")
+        print("Added stop_requested column to job_runs table")
+    except sqlite3.OperationalError as e:
+        if "duplicate column name" in str(e):
+            print("stop_requested column already exists")
+        else:
+            print(f"Error adding stop_requested column: {e}")
+    
+    # Migration: Add custom_cover_letter_prompt column if it doesn't exist
+    try:
+        cursor.execute("ALTER TABLE user_settings ADD COLUMN custom_cover_letter_prompt TEXT")
+        print("Added custom_cover_letter_prompt column to user_settings table")
+    except sqlite3.OperationalError as e:
+        if "duplicate column name" in str(e):
+            print("custom_cover_letter_prompt column already exists")
+        else:
+            print(f"Error adding custom_cover_letter_prompt column: {e}")
     
     conn.commit()
     conn.close()
