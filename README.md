@@ -123,6 +123,61 @@ The app will be available at: **http://localhost:5000**
    - Click "Start Automation"
    - Watch your applications!
 
+## 💻 Terminal / CLI Usage
+
+You can also interact with the application from the terminal using the CLI tool:
+
+### Register a New User
+
+```bash
+# Interactive registration (prompts for password)
+python cli.py register --email your@email.com --name "Your Name"
+
+# Or with password in command (not recommended for security)
+python cli.py register --email your@email.com --name "Your Name" --password yourpassword
+```
+
+### Login from Terminal
+
+```bash
+# Interactive login (prompts for password)
+python cli.py login --email your@email.com
+
+# Verify credentials and see account status
+python cli.py status --email your@email.com
+```
+
+### Check Status and Statistics
+
+```bash
+# View your account status, configuration, and statistics
+python cli.py status --email your@email.com
+```
+
+This will show:
+- ✅ Configuration status (API keys, Gmail auth, resume, etc.)
+- 📊 Application statistics (jobs processed, emails sent)
+- 🕐 Recent automation runs
+
+### List All Users
+
+```bash
+python cli.py list-users
+```
+
+### CLI Help
+
+```bash
+# Show all available commands
+python cli.py --help
+
+# Show help for a specific command
+python cli.py register --help
+python cli.py login --help
+```
+
+**Note:** For full functionality (Gmail authorization, uploading resume, running automation), use the web interface at http://localhost:5000
+
 ## 🐳 Docker Deployment
 
 Want to deploy on a server? Use Docker!
